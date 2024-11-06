@@ -1,0 +1,10 @@
+_target_: src.gleason_data.GleasonX
+path: ${oc.env:DATASET_LOCATION}/GleasonXAI
+scaling: "MicronsCalibrated"
+label_level: 1
+create_seg_masks: True
+drawing_order: "grade_frame_order"
+explanation_file: "final_filtered_explanations_df.csv"
+data_split: [0.7, 0.15, 0.15]
+defaults:
+- tissue_mask_kwargs: unfilled_holes

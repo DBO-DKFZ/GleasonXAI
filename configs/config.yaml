@@ -1,0 +1,19 @@
+save_metric: val_loss_epoch
+metric_direction: minimize
+seed: null
+task: segmentation
+experiment: ???
+
+defaults:
+  - _self_
+  - dataset: segmentation_microns_calibrated
+  - dataloader: large_batch_size
+  - model: segmentation_efficientnet
+  - optimization: optuna_tuned
+  - trainer: small_epochs
+  - logger: default
+  - loss_functions: ???
+  - augmentations: microns_calibrated_sw
+  - hparam_search: null
+  - optuna: null
+

@@ -1,0 +1,4 @@
+lr: 5.56e-5
+weight_decay: 0.02
+patience: 2
+direction: ${metric_direction}

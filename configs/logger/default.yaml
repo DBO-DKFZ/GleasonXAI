@@ -1,0 +1,5 @@
+log_dir: ${env:EXPERIMENT_LOCATION}
+experiment_name: ${experiment}
+save_test_preds: true
+save_model_checkpoints: true
+log_wandb: true

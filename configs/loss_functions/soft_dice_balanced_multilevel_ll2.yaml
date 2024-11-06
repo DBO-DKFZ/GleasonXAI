@@ -1,0 +1,12 @@
+_target_: src.tree_loss.TreeLoss
+level_weights: [1.0, 1.0, 1.0]
+loss_functions_per_level:
+  - - - 1.0
+      - _target_: src.model_utils.SoftDiceLoss
+        average: "macro" 
+  - - - 1.0
+      - _target_: src.model_utils.SoftDiceLoss
+        average: "macro"
+  - - - 1.0
+      - _target_: src.model_utils.SoftDiceLoss
+        average: "macro"

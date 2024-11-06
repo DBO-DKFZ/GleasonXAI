@@ -1,0 +1,13 @@
+storage: "SYS_DEFAULT"
+num_trials: 20
+target: ${save_metric}
+direction: ${metric_direction}
+objective_function: "lr_weight_decay"
+print_progress: false
+delete_study: false
+study_name: ${experiment}
+pruner:
+ _target_: optuna.pruners.MedianPruner
+ n_startup_trials: 5
+ n_warmup_steps: 20
+ n_min_trials: 3

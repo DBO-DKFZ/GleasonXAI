@@ -1,0 +1,3 @@
+train: "tellez_train_512"
+eval: "basic_eval_512"
+use_sw: false
