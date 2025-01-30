@@ -1,7 +1,0 @@
-_target_: src.tree_loss.TreeLoss
-level_weights: [1.0, 1.0]
-loss_functions_per_level:
-  - - - 1.0
-      - _target_: torch.nn.CrossEntropyLoss
-  - - - 1.0
-      - _target_: torch.nn.CrossEntropyLoss

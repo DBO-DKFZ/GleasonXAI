@@ -1,3 +1,0 @@
-train: "tellez_train_eff_b4"
-eval: "basic_eval_eff_b4"
-use_sw: false

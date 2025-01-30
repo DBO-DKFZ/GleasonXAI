@@ -1,4 +1,0 @@
-_target_: src.robust_loss_functions.NCEandMAE
-alpha: 1.0
-beta: 1.0
-num_classes: 4

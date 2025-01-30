@@ -1,22 +1,25 @@
-#%%
+# %%
 import math
-import shutil
-from pathlib import Path
-from textwrap import wrap
-from typing import Union
 
-import albumentations as alb
 import cv2
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colormaps as cm
 from matplotlib.colors import ListedColormap
-from PIL import Image
-from tqdm import tqdm
 
-classes_ll1_shortform = ["benign tissue", "individual glands", "compressed glands", "poorly formed glands",
-                         "cribriform glands", "glomeruloid glands", "group of tumor cells", "single cells", "cords", "comedenocrosis"]
+classes_ll1_shortform = [
+    "benign tissue",
+    "individual glands",
+    "compressed glands",
+    "poorly formed glands",
+    "cribriform glands",
+    "glomeruloid glands",
+    "group of tumor cells",
+    "single cells",
+    "cords",
+    "comedenocrosis",
+]
 
 classes_ll0_shortform = ["Gleason pattern 3", "Gleason pattern 4", "Gleason pattern 5"]
 
@@ -47,7 +50,7 @@ def tissue_filter_image(img, kernel_size=17, iterations=2, close=True, open=True
 
         # 0 is background, 1 is tissue, 2 is floodfilled background
         h, w = tissue_mask.shape
-        mask = np.zeros((h+2, w+2), np.uint8)
+        mask = np.zeros((h + 2, w + 2), np.uint8)
         mask[1:-1, 1:-1] = tissue_mask
         _, ff_old, ff, _ = cv2.floodFill(mask, None, (0, 0), 2)
 
@@ -73,7 +76,6 @@ def tissue_filter_image(img, kernel_size=17, iterations=2, close=True, open=True
 
 def create_composite_plot(data, img, masks, background=None, label_level=None, ax=None, only_show_existing_annotation=True):
 
-
     if label_level is None:
         label_level = data.label_level
 
@@ -87,13 +89,13 @@ def create_composite_plot(data, img, masks, background=None, label_level=None, a
             mask += 1
             mask[cv2.resize(background.astype(np.uint8), mask.shape, interpolation=cv2.INTER_NEAREST_EXACT).astype(bool)] = 0
 
-        colormap = ListedColormap(np.concatenate([np.array([[0., 0., 0., 1.]]), data.colormap.colors]))
+        colormap = ListedColormap(np.concatenate([np.array([[0.0, 0.0, 0.0, 1.0]]), data.colormap.colors]))
         num_class_to_vis = data.num_classes + 1
 
     encountered_classes = set()
 
     if ax is None:
-        f, ax = plt.subplots(ncols=math.ceil((len(masks)+1)/2), nrows=2)
+        f, ax = plt.subplots(ncols=math.ceil((len(masks) + 1) / 2), nrows=2)
         ax = ax.T.flatten()
 
         for a in ax:
@@ -109,29 +111,35 @@ def create_composite_plot(data, img, masks, background=None, label_level=None, a
 
         encountered_classes |= set(np.unique(mask))
 
-        ax[i+1].imshow(mask.astype(int), alpha=0.8,  cmap=colormap, vmin=0, vmax=num_class_to_vis, interpolation_stage="rgba")
-        ax[i+1].set_axis_off()
-        ax[i+1].set_title(annotator, size=8)
+        ax[i + 1].imshow(mask.astype(int), alpha=0.8, cmap=colormap, vmin=0, vmax=num_class_to_vis, interpolation_stage="rgba")
+        ax[i + 1].set_axis_off()
+        ax[i + 1].set_title(annotator, size=8)
 
     ax[0].set_title("WSI", size=8)
     ax[0].set_axis_off()
 
     if f is not None:
         if background is not None:
-            legend_handels = [mpatches.Patch(color=np.array([0., 0., 0., 1.]), label=f"Background")]
-            legend_handels += [mpatches.Patch(color=colormap(data.classes_number_mapping[cls]+1), label=cls if len(cls) < 60 else cls[:60]+"...")
-                               for cls in data.classes_named if data.classes_number_mapping[cls]+1 in encountered_classes]
+            legend_handels = [mpatches.Patch(color=np.array([0.0, 0.0, 0.0, 1.0]), label=f"Background")]
+            legend_handels += [
+                mpatches.Patch(color=colormap(data.classes_number_mapping[cls] + 1), label=cls if len(cls) < 60 else cls[:60] + "...")
+                for cls in data.classes_named
+                if data.classes_number_mapping[cls] + 1 in encountered_classes
+            ]
         else:
-            legend_handels = [mpatches.Patch(color=colormap(data.classes_number_mapping[cls]), label=cls[:40] if len(cls) < 60 else cls[:60]+"...")
-                              for cls in data.classes_named if data.classes_number_mapping[cls] in encountered_classes]
-
+            legend_handels = [
+                mpatches.Patch(color=colormap(data.classes_number_mapping[cls]), label=cls[:40] if len(cls) < 60 else cls[:60] + "...")
+                for cls in data.classes_named
+                if data.classes_number_mapping[cls] in encountered_classes
+            ]
 
         f.legend(handles=legend_handels, loc="outside right", fontsize=6, bbox_to_anchor=(1.4, 0.5))
-        
+
         return f
 
+
 def create_single_annotator_segmentation_plot(data, image, seg_mask):
-    
+
     f, ax = plt.subplots()
 
     if image is not None:
@@ -139,25 +147,26 @@ def create_single_annotator_segmentation_plot(data, image, seg_mask):
         ax.imshow(grayscale_image)
 
     # Create a copy of the original image
-    #overlay_image = org_image.copy()
+    # overlay_image = org_image.copy()
     # Apply the colormap to the segmented regions
-    #overlay_image[seg_mask > 0] = seg_colormap(seg_mask[seg_mask > 0])[:, :3]
-    #plt.imshow(overlay_image, alpha=0.9)
-    
-    ax.imshow(seg_mask.astype(int), alpha=0.8, cmap=data.colormap, vmin=0, vmax=data.num_classes-1)
+    # overlay_image[seg_mask > 0] = seg_colormap(seg_mask[seg_mask > 0])[:, :3]
+    # plt.imshow(overlay_image, alpha=0.9)
 
-    legend_handels = [mpatches.Patch(color=np.array([0.,0.,0.,1.]), label=f"Unannotated")]
-    legend_handels += [mpatches.Patch(color=data.colormap(data.exp_number_mapping[exp]), label=f"{data.exp_grade_mapping[exp]}: " + exp)
-        for exp in data.explanations]
+    ax.imshow(seg_mask.astype(int), alpha=0.8, cmap=data.colormap, vmin=0, vmax=data.num_classes - 1)
 
-    ax.legend(handles=legend_handels, loc="center", bbox_to_anchor=(1.5,0.5), fontsize=6)
+    legend_handels = [mpatches.Patch(color=np.array([0.0, 0.0, 0.0, 1.0]), label=f"Unannotated")]
+    legend_handels += [
+        mpatches.Patch(color=data.colormap(data.exp_number_mapping[exp]), label=f"{data.exp_grade_mapping[exp]}: " + exp) for exp in data.explanations
+    ]
+
+    ax.legend(handles=legend_handels, loc="center", bbox_to_anchor=(1.5, 0.5), fontsize=6)
     plt.show()
 
 
 def create_explanation_visualization(data, annotator_exp_slices, show_individual=False):
 
     if show_individual:
-        for (annotator, annotator_exp_slice) in annotator_exp_slices.items():
+        for annotator, annotator_exp_slice in annotator_exp_slices.items():
             plt.imshow(annotator_exp_slice, cmap=cm["Grays"].reversed())
             # plt.title(annotator + "\n" + explanation, size= 8)
             plt.show()
@@ -167,8 +176,7 @@ def create_explanation_visualization(data, annotator_exp_slices, show_individual
 
 
 def create_segmentation_masks(data, img_index: int, shorter_edge_length=None, img=None, background_mask=None, tissue_mask_kwargs={}, drawing_order="classic"):
-    
-   
+
     slide_df = data.get_slide_df(img_index)
     # Open is a lazy operation, so the incurred cost is low, as long as I dont load it.
 
@@ -182,7 +190,7 @@ def create_segmentation_masks(data, img_index: int, shorter_edge_length=None, im
     images_seg_annotator = {}
 
     shorter_edge = min(img.size)
-    scale_factor = shorter_edge/shorter_edge_length if shorter_edge_length else 1.0
+    scale_factor = shorter_edge / shorter_edge_length if shorter_edge_length else 1.0
     new_img_size = np.int32(np.round(np.array(img.size) / scale_factor))
 
     # Removed image loading for better performance. Leaving this legacy code in to document it.
@@ -199,14 +207,14 @@ def create_segmentation_masks(data, img_index: int, shorter_edge_length=None, im
         background_mask = ~tissue_filter_image(np.array(img) if not isinstance(img, np.ndarray) else img, size=img_size[::-1], **tissue_mask_kwargs)
 
     if drawing_order == "frame_order":
-        raise RuntimeError('Drawing order frame_order not recommended. Use grade_frame_order instead')
+        raise RuntimeError("Drawing order frame_order not recommended. Use grade_frame_order instead")
         annotator_images = {}
 
         for annotator, annotator_frame in slide_df.groupby(by="annotator"):
             annotator_image = np.zeros(list(img_size), dtype=np.int8)  # (H,W)
 
             for exp, coords in zip(annotator_frame["explanations"], annotator_frame["coords"]):
-                new_coords = np.int32(coords.T * img_size.reshape(-1, 1)[::-1, :])  
+                new_coords = np.int32(coords.T * img_size.reshape(-1, 1)[::-1, :])
                 label_slice = np.zeros(list(img_size), dtype=np.int8)
 
                 cv2.fillPoly(label_slice, [new_coords.T], color=1)  # Fill Poly expect (W,H) coordinates and a (H,W,C) numpy image.
@@ -226,7 +234,7 @@ def create_segmentation_masks(data, img_index: int, shorter_edge_length=None, im
             for grade_image, grade_annotator_frame in annotator_frame.groupby("grade", sort=True, observed=True):
 
                 for exp, coords in zip(grade_annotator_frame["explanations"], grade_annotator_frame["coords"]):
-                    new_coords = np.int32(coords.T * img_size.reshape(-1, 1)[::-1, :]) 
+                    new_coords = np.int32(coords.T * img_size.reshape(-1, 1)[::-1, :])
                     label_slice = np.zeros(list(img_size), dtype=np.int8)
 
                     cv2.fillPoly(label_slice, [new_coords.T], color=1)  # Fill Poly expect (W,H) coordinates and a (H,W,C) numpy image.
@@ -238,24 +246,27 @@ def create_segmentation_masks(data, img_index: int, shorter_edge_length=None, im
         return None, annotator_images, background_mask
 
     elif drawing_order == "custom_order":
-        raise RuntimeError('Drawing order custom_order not recommended. Use grade_frame_order instead.')
+        raise RuntimeError("Drawing order custom_order not recommended. Use grade_frame_order instead.")
         annotator_images = {}
 
         for annotator, annotator_frame in slide_df.groupby(by="annotator"):
             annotator_image = np.zeros(list(img_size), dtype=np.int8)  # (H,W)
 
             exp_groups = annotator_frame.groupby("explanations", observed=True)
-            custom_order = {0: ["3", "4", "5"],
-                            1: ["variable sized well-formed individual and discrete glands",
-                                "compressed or angular discrete glands",
-                                "poorly formed and fused glands",
-                                "Cribriform glands",
-                                "Glomeruloid glands",
-                                "solid groups of tumor cells",
-                                "cords",
-                                "single cells",
-                                "presence of comedonecrosis",]
-                            }
+            custom_order = {
+                0: ["3", "4", "5"],
+                1: [
+                    "variable sized well-formed individual and discrete glands",
+                    "compressed or angular discrete glands",
+                    "poorly formed and fused glands",
+                    "Cribriform glands",
+                    "Glomeruloid glands",
+                    "solid groups of tumor cells",
+                    "cords",
+                    "single cells",
+                    "presence of comedonecrosis",
+                ],
+            }
             custom_order = custom_order[data.label_level]
 
             for exp in custom_order:
@@ -278,8 +289,8 @@ def create_segmentation_masks(data, img_index: int, shorter_edge_length=None, im
         return None, annotator_images, background_mask
 
     elif drawing_order == "classic":
-        raise RuntimeError('Drawing order classic not recommended. Use grade_frame_order instead.')
-    
+        raise RuntimeError("Drawing order classic not recommended. Use grade_frame_order instead.")
+
         for exp, exp_frame in slide_df.groupby(by="explanations", observed=True):
 
             images_exp_annotator[exp] = {}

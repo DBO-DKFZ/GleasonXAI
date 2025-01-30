@@ -11,10 +11,9 @@ from torchmetrics import Metric
 from src.tree_loss import generate_label_hierarchy
 
 
-class PatchedOptunaCallback(
-    optuna.integration.PyTorchLightningPruningCallback, pytorch_lightning.Callback
-):
+class PatchedOptunaCallback(optuna.integration.PyTorchLightningPruningCallback, pytorch_lightning.Callback):
     pass
+
 
 class LabelRemapper(nn.Module):
 
@@ -29,11 +28,12 @@ class LabelRemapper(nn.Module):
         out_remappings = generate_label_hierarchy(x, self.remapping_dict, start_level=self.from_level)
         return out_remappings[self.to_level]
 
+
 # Loss functions
 
 
-def dice_score_hard(pred: torch.Tensor, target: torch.Tensor, average="micro", zero_division=0., invert=False):
-    """ Soft implementation of the DICE score."""
+def dice_score_hard(pred: torch.Tensor, target: torch.Tensor, average="micro", zero_division=0.0, invert=False):
+    """Soft implementation of the DICE score."""
 
     # target is either of shape [C] or of shape [C,H,W]. Add batch dimension.
     if target.dim() in [1, 3]:
@@ -46,16 +46,16 @@ def dice_score_hard(pred: torch.Tensor, target: torch.Tensor, average="micro", z
         target_new.scatter_(1, target, 1)
         target = target_new
 
-    assert (pred.shape == target.shape)
+    assert pred.shape == target.shape
 
     dims = {i for i in range(pred.dim())}
-    dims = {"micro": dims, "macro": dims-{1}, "samples": dims-{0}, None: dims-{0, 1}}
+    dims = {"micro": dims, "macro": dims - {1}, "samples": dims - {0}, None: dims - {0, 1}}
     dims = tuple(dims[average])
 
     intersection = torch.sum(pred * target, dims)
     cardinality = torch.sum(pred + target, dims)
 
-    dice_score = (2. * intersection + zero_division) / (cardinality + zero_division)
+    dice_score = (2.0 * intersection + zero_division) / (cardinality + zero_division)
 
     if invert:
         dice_score = 1 - dice_score
@@ -66,8 +66,8 @@ def dice_score_hard(pred: torch.Tensor, target: torch.Tensor, average="micro", z
         return torch.mean(dice_score)
 
 
-def dice_score_soft(pred: torch.Tensor, target: torch.Tensor, average="micro", zero_division=0., invert=False):
-    """ Soft implementation of the DICE score."""
+def dice_score_soft(pred: torch.Tensor, target: torch.Tensor, average="micro", zero_division=0.0, invert=False):
+    """Soft implementation of the DICE score."""
 
     # target is either of shape [C] or of shape [C,H,W]. Add batch dimension.
     if target.dim() in [1, 3]:
@@ -80,16 +80,16 @@ def dice_score_soft(pred: torch.Tensor, target: torch.Tensor, average="micro", z
         target_new.scatter_(1, target, 1)
         target = target_new
 
-    assert (pred.shape == target.shape)
+    assert pred.shape == target.shape
 
     dims = {i for i in range(pred.dim())}
-    dims = {"micro": dims, "macro": dims-{1}, "samples": dims-{0}, None: dims-{0, 1}}
+    dims = {"micro": dims, "macro": dims - {1}, "samples": dims - {0}, None: dims - {0, 1}}
     dims = tuple(dims[average])
 
     intersection = torch.sum(pred * target, dims)
     cardinality = torch.sum(pred + target, dims)
 
-    dice_score = (2. * intersection + zero_division) / (cardinality + zero_division)
+    dice_score = (2.0 * intersection + zero_division) / (cardinality + zero_division)
 
     if invert:
         dice_score = 1 - dice_score
@@ -99,11 +99,11 @@ def dice_score_soft(pred: torch.Tensor, target: torch.Tensor, average="micro", z
     else:
         return torch.mean(dice_score)
 
-def dice_loss_soft(pred: torch.Tensor, target: torch.Tensor, average: Literal["micro", "macro", "samples"] = "micro", zero_division: float = 0.):
-    """ Soft implementation of the DICE loss."""
 
-    assert (pred.shape == target.shape)
+def dice_loss_soft(pred: torch.Tensor, target: torch.Tensor, average: Literal["micro", "macro", "samples"] = "micro", zero_division: float = 0.0):
+    """Soft implementation of the DICE loss."""
 
+    assert pred.shape == target.shape
 
     pred = F.softmax(pred, dim=1)
 
@@ -113,11 +113,9 @@ def dice_loss_soft(pred: torch.Tensor, target: torch.Tensor, average: Literal["m
     return dice_loss
 
 
-
-
 class SoftDiceLoss(nn.Module):
 
-    def __init__(self, average: Literal["micro", "macro", "samples"] = "micro", epsilon: float = 0.) -> None:
+    def __init__(self, average: Literal["micro", "macro", "samples"] = "micro", epsilon: float = 0.0) -> None:
         super().__init__()
 
         self.average = average
@@ -144,7 +142,7 @@ class MultiLabelLoss(nn.Module):
 
 class SoftDICEMetric(Metric):
 
-    def __init__(self, average: Literal["micro", "macro"] = "micro", zero_division=0.,  **kwargs):
+    def __init__(self, average: Literal["micro", "macro"] = "micro", zero_division=0.0, **kwargs):
         super().__init__(**kwargs)
 
         self.zero_div = zero_division
@@ -175,8 +173,8 @@ class L1CalibrationMetric(Metric):
 
     def update(self, preds: Tensor, target: Tensor) -> None:
 
-        self.agg_score += ((preds - target).abs().sum(dim=1)/2).sum()
-        self.total += torch.numel(preds)//preds.size(1)  # preds.reshape(-1, preds.size(1)).size(0)
+        self.agg_score += ((preds - target).abs().sum(dim=1) / 2).sum()
+        self.total += torch.numel(preds) // preds.size(1)  # preds.reshape(-1, preds.size(1)).size(0)
 
     def compute(self) -> Tensor:
         return self.agg_score / self.total

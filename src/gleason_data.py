@@ -1,6 +1,6 @@
 # %%
-import os
 import json
+import os
 import shutil
 import warnings
 from collections import defaultdict
@@ -24,12 +24,10 @@ from .gleason_utils import create_segmentation_masks
 from .tree_loss import get_explanation_level_mapping, parse_label_hierarchy
 
 # Necessary because somthing changed in Pandas again...
-warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-def reformat_dataset_to_flat_structure(path_to_tmas: Union[str, Path],
-                                       new_path_to_tmas: Union[str, Path],
-                                       file_format: str):
+def reformat_dataset_to_flat_structure(path_to_tmas: Union[str, Path], new_path_to_tmas: Union[str, Path], file_format: str):
 
     path_to_tmas = Path(path_to_tmas)
     new_path_to_tmas = Path(new_path_to_tmas)
@@ -40,12 +38,12 @@ def reformat_dataset_to_flat_structure(path_to_tmas: Union[str, Path],
     tma_paths = load_tmas(path_to_tmas)
 
     if not file_format[0] == ".":
-        file_format = "."+file_format
+        file_format = "." + file_format
 
     for tma_identifier, tma_path in tqdm(tma_paths.items()):
 
-        tma_path = Path(path_to_tmas/tma_path)
-        new_path = Path(new_path_to_tmas/(tma_identifier+file_format))
+        tma_path = Path(path_to_tmas / tma_path)
+        new_path = Path(new_path_to_tmas / (tma_identifier + file_format))
 
         if tma_path.suffix == ".png":
             img = Image.open(tma_path)
@@ -54,6 +52,7 @@ def reformat_dataset_to_flat_structure(path_to_tmas: Union[str, Path],
             shutil.copy(tma_path, new_path)
         else:
             raise RuntimeError(tma_path.suffix)
+
 
 def prepare_torch_inputs(img, seg_masks, num_classes):
 
@@ -78,8 +77,13 @@ def prepare_torch_inputs(img, seg_masks, num_classes):
 
 def get_class_colormaps(num_classes_per_grade, min=0.1, max=0.9):
 
-    def generate_colormap(cm_name, num, min=0, max=1,):
-        colors = cm[cm_name](np.linspace(min, max, num+2))[1:-1]
+    def generate_colormap(
+        cm_name,
+        num,
+        min=0,
+        max=1,
+    ):
+        colors = cm[cm_name](np.linspace(min, max, num + 2))[1:-1]
         colormap = ListedColormap(colors)
         return colormap
 
@@ -87,14 +91,14 @@ def get_class_colormaps(num_classes_per_grade, min=0.1, max=0.9):
     blues = generate_colormap("Blues", num_classes_per_grade["4"], min=min, max=max)
     reds = generate_colormap("Reds", num_classes_per_grade["5"], min=min, max=max)
 
-    colormap = ListedColormap(np.concatenate([np.array([[1.0, 1.0, 1.0, 1.]]), greens.colors, blues.colors, reds.colors]))
+    colormap = ListedColormap(np.concatenate([np.array([[1.0, 1.0, 1.0, 1.0]]), greens.colors, blues.colors, reds.colors]))
 
     return colormap
 
 
 def load_explanations(path, explanation_file="explanations_df.csv"):
 
-    df = pd.read_csv(path/explanation_file)
+    df = pd.read_csv(path / explanation_file)
     df = df.dropna(how="all")
     df["explanations"] = df["explanations"].astype("category")
 
@@ -117,7 +121,7 @@ def postprocess_df(df, tma_paths, exp_lvl_remapping, label_level):
         except:
             return np.nan
 
-    converted_coords = df['coords'].apply(str_list_convert_pd)
+    converted_coords = df["coords"].apply(str_list_convert_pd)
     df["coords"] = converted_coords
 
     assert df["coords"].isnull().sum() == 0, "Some coordinates are null."
@@ -125,7 +129,7 @@ def postprocess_df(df, tma_paths, exp_lvl_remapping, label_level):
     # Remap explanations with label hierarchy
 
     # COLUMN_NAMES = ("explanation_grade", "explanations_grouped", "explanations_base")
-    COLUMN_NAMES = [f"explanation_lvl_{i}" for i in range(len(exp_lvl_remapping)+1)]
+    COLUMN_NAMES = [f"explanation_lvl_{i}" for i in range(len(exp_lvl_remapping) + 1)]
 
     # Go from lowest to highest
     COLUMN_NAMES = COLUMN_NAMES[::-1]
@@ -148,12 +152,11 @@ def postprocess_df(df, tma_paths, exp_lvl_remapping, label_level):
     # Use "explanations" to store the exps for the desired label_level
     df["explanations"] = df[COLUMN_NAMES[::-1][label_level]]
 
-
     return df
 
 
 def load_tmas(base_dataset_path, flat_structure=None):
-    """Loads the TMAs provided a $base_dataset_path. Uses the $flat_structure layout if provided.   
+    """Loads the TMAs provided a $base_dataset_path. Uses the $flat_structure layout if provided.
 
     Args:
         base_dataset_path (Path): Path to the TMA folder.
@@ -168,7 +171,7 @@ def load_tmas(base_dataset_path, flat_structure=None):
 
     if flat_structure is None:
 
-        folders_exist = [(base_dataset_path/folder_name).exists() for folder_name in ["dataverse", "Gleason2019", "tissuemicroarray"]]
+        folders_exist = [(base_dataset_path / folder_name).exists() for folder_name in ["dataverse", "Gleason2019", "tissuemicroarray"]]
 
         if all(folders_exist):
             flat_structure = False
@@ -185,21 +188,25 @@ def load_tmas(base_dataset_path, flat_structure=None):
 
     else:
 
-        gleason_2019_paths = [base_dataset_path/"Gleason2019/Train Imgs",
-                              base_dataset_path/"Gleason2019/Test_imgs",]
+        gleason_2019_paths = [
+            base_dataset_path / "Gleason2019/Train Imgs",
+            base_dataset_path / "Gleason2019/Test_imgs",
+        ]
 
-        tissuemicroarray_paths = [base_dataset_path/"tissuemicroarray",]
+        tissuemicroarray_paths = [
+            base_dataset_path / "tissuemicroarray",
+        ]
 
-        dataverse_paths = [base_dataset_path/"dataverse/dataverse_files",]
+        dataverse_paths = [
+            base_dataset_path / "dataverse/dataverse_files",
+        ]
 
-        dataset_paths = {"Gleason2019": gleason_2019_paths,
-                         "dataverse": dataverse_paths, "tissuemicroarray": tissuemicroarray_paths}
+        dataset_paths = {"Gleason2019": gleason_2019_paths, "dataverse": dataverse_paths, "tissuemicroarray": tissuemicroarray_paths}
 
         TMA_files = {}  # {"Gleason2019":{}, "dataverse":{}, "tissuemicroarray":{}}
         encountered_file_names = defaultdict(list)
 
-        valid_extensions = {"Gleason2019": (
-            ".jpg"), "dataverse": ".jpg", "tissuemicroarray": ".png"}
+        valid_extensions = {"Gleason2019": (".jpg"), "dataverse": ".jpg", "tissuemicroarray": ".png"}
 
         for dataset in ["Gleason2019", "dataverse", "tissuemicroarray"]:
             for dataset_path in dataset_paths[dataset]:
@@ -211,17 +218,17 @@ def load_tmas(base_dataset_path, flat_structure=None):
                         for found_file in found_files:
 
                             if dataset == "Gleason2019":
-                                file_name = str(found_file.relative_to(
-                                    dataset_path)).replace("/", "_").split(".")[0]
+                                file_name = str(found_file.relative_to(dataset_path)).replace("/", "_").split(".")[0]
 
                             elif dataset == "tissuemicroarray":
 
-                                file_name = str(found_file.relative_to(
-                                    dataset_path)).replace("/", "_").split(".")[0]
-                                rename_mapping = {"HE_PR482a-073": "PR482a",
-                                                  "HE_PR633a-019": "PR633a",
-                                                  "HE_PR1001-SK112": "PR1001",
-                                                  "HE_PR1921b-SD089": "PR1921b"}
+                                file_name = str(found_file.relative_to(dataset_path)).replace("/", "_").split(".")[0]
+                                rename_mapping = {
+                                    "HE_PR482a-073": "PR482a",
+                                    "HE_PR633a-019": "PR633a",
+                                    "HE_PR1001-SK112": "PR1001",
+                                    "HE_PR1921b-SD089": "PR1921b",
+                                }
 
                                 for key, item in rename_mapping.items():
                                     file_name = file_name.replace(key, item)
@@ -238,11 +245,9 @@ def load_tmas(base_dataset_path, flat_structure=None):
                             encountered_file_names[file_name].append(found_file)
 
                             if duplicate:
-                                print(
-                                    f"Found duplicate of {file_name}. Locations: {encountered_file_names[file_name]}")
+                                print(f"Found duplicate of {file_name}. Locations: {encountered_file_names[file_name]}")
                             else:
-                                TMA_files[file_name] = found_file.relative_to(
-                                    base_dataset_path)
+                                TMA_files[file_name] = found_file.relative_to(base_dataset_path)
 
     return TMA_files
 
@@ -276,7 +281,7 @@ def draw_on_TMA(img, explanations, coords, color_exp_mapping):
     # img = Image.open(base_dataset_path/img_path)
 
     shorter_edge = min(img.size)
-    scale_factor = shorter_edge/shorter_edge_length
+    scale_factor = shorter_edge / shorter_edge_length
     new_img_size = np.int32(np.array(img.size) / scale_factor)
 
     img = img.resize(new_img_size)
@@ -287,24 +292,38 @@ def draw_on_TMA(img, explanations, coords, color_exp_mapping):
         exp_color = color_exp_mapping[explanation]
 
         coord = np.int32(coord.T * np.array(img.shape[:2]).reshape(-1, 1))
-        img = cv2.polylines(img, [coord.T], True,  exp_color, 2)
+        img = cv2.polylines(img, [coord.T], True, exp_color, 2)
 
     return Image.fromarray(img)
+
 
 class GleasonX(torch.utils.data.Dataset):
 
     BACKGROUND_VALUE = 0
 
-    def __init__(self, path: Union[str, Path], split: Literal["train", "val", "test", "all"], scaling: Union[str, int] = "original", transforms: Optional[albumentations.BasicTransform] = None, label_level: Literal[0, 1, 2] = 1, create_seg_masks=True, tissue_mask_kwargs={}, explanation_file="explanations_df.csv", label_hierarchy_file="label_remapping.json", drawing_order="grade_frame_order", data_split=(0.7, 0.15, 0.15)):
+    def __init__(
+        self,
+        path: Union[str, Path],
+        split: Literal["train", "val", "test", "all"],
+        scaling: Union[str, int] = "original",
+        transforms: Optional[albumentations.BasicTransform] = None,
+        label_level: Literal[0, 1, 2] = 1,
+        create_seg_masks=True,
+        tissue_mask_kwargs={},
+        explanation_file="explanations_df.csv",
+        label_hierarchy_file="label_remapping.json",
+        drawing_order="grade_frame_order",
+        data_split=(0.7, 0.15, 0.15),
+    ):
 
         path = Path(path)
         self.path = path
         assert self.path.exists()
 
         scaling = str(scaling)
-        self.tma_base_path = self.path/"TMA"/scaling
-        self.segmentation_masks_base_path = self.path/"segmentation_masks"/("label_level_"+str(label_level))/scaling
-        self.background_mask_base_path = self.path/"background_masks"/scaling
+        self.tma_base_path = self.path / "TMA" / scaling
+        self.segmentation_masks_base_path = self.path / "segmentation_masks" / ("label_level_" + str(label_level)) / scaling
+        self.background_mask_base_path = self.path / "background_masks" / scaling
 
         if tissue_mask_kwargs is None or tissue_mask_kwargs == {}:
             self.background_mask_base_path /= "default"
@@ -314,18 +333,20 @@ class GleasonX(torch.utils.data.Dataset):
         if scaling == "MicronsCalibrated" and not drawing_order in ["custom_order", "grade_frame_order"]:
             raise RuntimeError("Use grade_frame_order instead")
 
-
-        assert (self.tma_base_path).exists(), self.tma_base_path
+        assert (self.tma_base_path).exists(), f"{self.tma_base_path} should contain the TMAs but does not exist!"
 
         if not create_seg_masks:
-            assert (self.segmentation_masks_base_path.exists()), self.segmentation_masks_base_path
-            assert (self.background_mask_base_path.exists()), self.background_mask_base_path
+            assert self.segmentation_masks_base_path.exists(), f"{self.segmentation_masks_base_path} should contain segmentation masks but does not exist"
+            assert self.background_mask_base_path.exists(), f"{self.background_mask_base_path} should contain background masks but does not exist"
             self.CREATE_SEG_MASKS = False
         else:
             self.CREATE_SEG_MASKS = True
-            warnings.warn("Creating masks on the fly. Very slow!")
 
-        with open(self.path/label_hierarchy_file, "r") as f:
+        try:
+            f = open(self.path / label_hierarchy_file, "r")
+        except IOError:
+            print(f"label hierarchy file {self.path/label_hierarchy_file} does not exist.")
+        with open(self.path / label_hierarchy_file, "r") as f:
             label_mapping = json.load(f)["hierarchy"]
 
         self.exp_per_level, self.exp_per_level_numbered, self.exp_lvl_remapping, self.exp_numbered_lvl_remapping = parse_label_hierarchy(label_mapping)
@@ -359,8 +380,7 @@ class GleasonX(torch.utils.data.Dataset):
         # if not self.CREATE_SEG_MASKS:
         #    assert len(unique_slides) == len(seg_paths.keys())
 
-        train, val, test = random_split(
-            unique_slides, data_split, torch.Generator().manual_seed(95967))
+        train, val, test = random_split(unique_slides, data_split, torch.Generator().manual_seed(95967))
 
         self.train_slides = train
         self.val_slides = val
@@ -375,14 +395,13 @@ class GleasonX(torch.utils.data.Dataset):
         elif self.split == "all":
             self.used_slides = list(unique_slides)
 
-
         grade_label_level_mapping = get_explanation_level_mapping(higher_level=0, lower_level=label_level, label_hierarchy=self.exp_numbered_lvl_remapping)
 
         # self.exp_grade_mapping = {exp: int(grade[0]) for exp, grade in df.groupby("explanations", observed=False)["explanation_grade"].unique().items()}
         self.explanations = self.exp_per_level[label_level]
         self.exp_number_mapping = self.exp_per_level_numbered[label_level]
 
-        self.num_classes = len(self.explanations)+1
+        self.num_classes = len(self.explanations) + 1
         self.classes_named = ["Benign"] + self.explanations
         self.classes_number_mapping = {"Benign": 0} | self.exp_number_mapping
         self.scaling = scaling
@@ -406,7 +425,7 @@ class GleasonX(torch.utils.data.Dataset):
                 rel_labels = grade_label_level_mapping[idx]
 
                 for r_l in rel_labels:
-                    self.exp_grade_mapping[self.explanations[r_l-1]] = grade
+                    self.exp_grade_mapping[self.explanations[r_l - 1]] = grade
 
         self.colormap = get_class_colormaps(num_classes_per_grade=num_classes_per_grade)
         self.color_palette = (self.colormap.colors[:, :3] * 255).astype(np.uint8)
@@ -416,20 +435,19 @@ class GleasonX(torch.utils.data.Dataset):
         if drawing_order is None:
             drawing_order = self.drawing_order
 
-
         # Load image
         img_name = self.used_slides[idx]
 
         img_path = self.tma_paths[img_name]
-        img = Image.open(self.tma_base_path/img_path)
+        img = Image.open(self.tma_base_path / img_path)
         img = np.array(img)
 
         if not self.CREATE_SEG_MASKS:
             seg_paths = self.seg_paths[img_name]
-            seg_images = [Image.open(self.segmentation_masks_base_path/seg_path) for seg_path in seg_paths]
+            seg_images = [Image.open(self.segmentation_masks_base_path / seg_path) for seg_path in seg_paths]
             seg_images = [np.array(seg_img) for seg_img in seg_images]
 
-            background_mask = np.array(Image.open(self.background_mask_base_path/self.background_paths[img_name]))
+            background_mask = np.array(Image.open(self.background_mask_base_path / self.background_paths[img_name]))
 
         else:
             # NOTE not sure if this is absolutly correct with the way CV and PIL handle resizing... but will not be used for training anyway.
@@ -444,7 +462,8 @@ class GleasonX(torch.utils.data.Dataset):
                 RuntimeError()
 
             _, seg_images, background_mask = create_segmentation_masks(
-                self, idx, desired_shorter_edge_length, tissue_mask_kwargs=self.tissue_mask_kwargs, drawing_order=drawing_order)
+                self, idx, desired_shorter_edge_length, tissue_mask_kwargs=self.tissue_mask_kwargs, drawing_order=drawing_order
+            )
 
             # SegImages are dict(AnnotatorName:str, seg_img:np.array)
             seg_images = list(seg_images.values())
@@ -454,7 +473,7 @@ class GleasonX(torch.utils.data.Dataset):
             c = 0
 
             while c < max_trials:
-                album_dict = self.transforms(image=img, masks=seg_images+[background_mask.astype(np.uint8)])
+                album_dict = self.transforms(image=img, masks=seg_images + [background_mask.astype(np.uint8)])
                 new_img = album_dict["image"]
                 *new_seg_images, new_background_mask = album_dict["masks"]
                 new_background_mask = new_background_mask.astype(bool)
@@ -483,7 +502,7 @@ class GleasonX(torch.utils.data.Dataset):
 
         img_name = self.used_slides[id]
         img_path = self.tma_paths[img_name]
-        img = Image.open(self.tma_base_path/img_path)
+        img = Image.open(self.tma_base_path / img_path)
 
         return img
 
@@ -518,7 +537,6 @@ class GleasonXClassification(GleasonX):
 
         # Return None for background_mask
         return tt.functional.to_tensor(img), torch.tensor(label), tt.functional.to_tensor(background_mask)
-
 
 
 if __name__ == "__main__":

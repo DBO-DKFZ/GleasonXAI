@@ -1,8 +1,0 @@
-_target_: src.jdt_losses.JDTLoss
-alpha: 0.5
-beta: 0.5
-mIoUD: 0.0
-mIoUI: 0.5
-mIoUC: 0.5
-log_loss: true
-add_CE: 1.0

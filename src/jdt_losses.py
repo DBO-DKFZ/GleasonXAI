@@ -7,9 +7,7 @@ Dice Semimetric Losses: Optimizing the Dice Score with Soft Labels <https://arxi
 Revisiting Evaluation Metrics for Semantic Segmentation: Optimization and Evaluation of Fine-grained Intersection over Union <https://arxiv.org/abs/2310.19252>
 """
 
-from typing import Literal
 
-import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
@@ -17,22 +15,25 @@ from torchmetrics import Metric
 
 
 class JDTLoss(_Loss):
-    def __init__(self,
-                 mIoUD=1.0,
-                 mIoUI=0.0,
-                 mIoUC=0.0,
-                 alpha=1.0,
-                 beta=1.0,
-                 gamma=1.0,
-                 smooth=1e-3,
-                 threshold=0.01,
-                 norm=1,
-                 log_loss=False,
-                 add_CE=False,
-                 ignore_index=None,
-                 class_weights=None,
-                 active_classes_mode_hard="PRESENT",
-                 active_classes_mode_soft="ALL"):
+
+    def __init__(
+        self,
+        mIoUD=1.0,
+        mIoUI=0.0,
+        mIoUC=0.0,
+        alpha=1.0,
+        beta=1.0,
+        gamma=1.0,
+        smooth=1e-3,
+        threshold=0.01,
+        norm=1,
+        log_loss=False,
+        add_CE=False,
+        ignore_index=None,
+        class_weights=None,
+        active_classes_mode_hard="PRESENT",
+        active_classes_mode_soft="ALL",
+    ):
         """
         Arguments:
             mIoUD (float): The weight of the loss to optimize mIoUD.
@@ -61,9 +62,7 @@ class JDTLoss(_Loss):
         """
         super().__init__()
 
-        assert mIoUD >= 0 and mIoUI >= 0 and mIoUC >= 0 and \
-            alpha >= 0 and beta >= 0 and gamma >= 1 and \
-            smooth >= 0 and threshold >= 0
+        assert mIoUD >= 0 and mIoUI >= 0 and mIoUC >= 0 and alpha >= 0 and beta >= 0 and gamma >= 1 and smooth >= 0 and threshold >= 0
         assert isinstance(norm, int) and norm > 0
         assert ignore_index == None or isinstance(ignore_index, int)
         assert class_weights == None or all((isinstance(w, float)) for w in class_weights)
@@ -164,7 +163,7 @@ class JDTLoss(_Loss):
         fp = prob_card - tp
         fn = label_card - tp
 
-        active_classes = self.compute_active_classes(label, active_classes_mode, (batch_size, num_classes), (2, ))
+        active_classes = self.compute_active_classes(label, active_classes_mode, (batch_size, num_classes), (2,))
 
         tversky = (tp + self.smooth) / (tp + self.alpha * fp + self.beta * fn + self.smooth)
 
@@ -204,10 +203,10 @@ class JDTLoss(_Loss):
         active_classes = self.compute_active_classes(label, active_classes_mode, num_classes, (0, 2))
         loss_mIoUD = self.forward_loss_mIoUD(tp, fp, fn, active_classes)
 
-        active_classes = self.compute_active_classes(label, active_classes_mode, (batch_size, num_classes), (2, ))
+        active_classes = self.compute_active_classes(label, active_classes_mode, (batch_size, num_classes), (2,))
         loss_mIoUI, loss_mIoUC = self.forward_loss_mIoUIC(tp, fp, fn, active_classes)
 
-        return 1-loss_mIoUD, 1-loss_mIoUI, 1-loss_mIoUC
+        return 1 - loss_mIoUD, 1 - loss_mIoUI, 1 - loss_mIoUC
 
     def forward_loss(self, prob, label, keep_mask, active_classes_mode):
         if keep_mask != None:
@@ -235,7 +234,7 @@ class JDTLoss(_Loss):
             loss += self.mIoUD * loss_mIoUD
 
         if self.mIoUI > 0 or self.mIoUC > 0:
-            active_classes = self.compute_active_classes(label, active_classes_mode, (batch_size, num_classes), (2, ))
+            active_classes = self.compute_active_classes(label, active_classes_mode, (batch_size, num_classes), (2,))
             loss_mIoUI, loss_mIoUC = self.forward_loss_mIoUIC(tp, fp, fn, active_classes)
             loss += self.mIoUI * loss_mIoUI + self.mIoUC * loss_mIoUC
 
@@ -254,7 +253,7 @@ class JDTLoss(_Loss):
 
     def forward_loss_mIoUD(self, tp, fp, fn, active_classes):
         if torch.sum(active_classes) < 1:
-            return 0. * torch.sum(tp)
+            return 0.0 * torch.sum(tp)
 
         tp = torch.sum(tp, dim=0)
         fp = torch.sum(fp, dim=0)
@@ -279,7 +278,7 @@ class JDTLoss(_Loss):
 
     def forward_loss_mIoUIC(self, tp, fp, fn, active_classes):
         if torch.sum(active_classes) < 1:
-            return 0. * torch.sum(tp), 0. * torch.sum(tp)
+            return 0.0 * torch.sum(tp), 0.0 * torch.sum(tp)
 
         tversky = (tp + self.smooth) / (tp + self.alpha * fp + self.beta * fn + self.smooth)
 
@@ -309,6 +308,7 @@ class JDTLoss(_Loss):
         loss = torch.mean(loss)
 
         return loss
+
 
 # %%
 
@@ -464,7 +464,7 @@ if __name__ == "__main__":
     A_c = torch.chunk(A, chunks=chunks, dim=0)
     B_c = torch.chunk(B, chunks=chunks, dim=0)
 
-    print(1-l(torch.logit(A), B))
+    print(1 - l(torch.logit(A), B))
 
     metric = SoftCorrectDICEMetric()
 
@@ -475,4 +475,3 @@ if __name__ == "__main__":
     for a_c, b_c in zip(A_c, B_c):
         metric.update(a_c, b_c)
     print(metric.compute())
-

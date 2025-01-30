@@ -1,2 +1,0 @@
-_target_: src.model_utils.MultiLabelLoss 
-hard_targets: true
